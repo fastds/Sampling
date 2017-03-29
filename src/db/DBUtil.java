@@ -7,7 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class DBUtil {
-	private Connection con;
+	private static Connection con;
 	private PreparedStatement statement;
 	
 	static {
@@ -17,9 +17,19 @@ public class DBUtil {
 			e.printStackTrace();
 		}
 	}
+	public static Connection getConnection(){
+		try {
+			if(con == null)
+				con = DriverManager.getConnection("jdbc:mysql://192.168.181.128:3306/tpch", "root", "123");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return con;
+	}
 	public DBUtil(){
 		try {
-			this.con = DriverManager.getConnection("jdbc:mysql://192.168.181.128:3306/tpch", "root", "123");
+			if(this.con == null)
+				this.con = DriverManager.getConnection("jdbc:mysql://192.168.181.128:3306/tpch", "root", "123");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}

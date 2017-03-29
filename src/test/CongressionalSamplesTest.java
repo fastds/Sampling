@@ -67,7 +67,7 @@ public class CongressionalSamplesTest {
 	 */
 	@Test
 	public void computeAvgError(){
-		String sql = "SELECT (sum(l_quantity)*sf)/(count(*)*sf) FROM lineitem_sample GROUP BY l_linestatus,l_returnflag ";
+		String sql = "SELECT avg(l_quantity) FROM lineitem_sample GROUP BY l_linestatus,l_returnflag ";
 		String summarySql = "SELECT * FROM summary";
 		DBUtil dbOne = new DBUtil();
 		DBUtil dbTwo = new DBUtil();
@@ -125,4 +125,27 @@ public class CongressionalSamplesTest {
 			e.printStackTrace();
 		}
 	}
+	
+	/**
+	 * 基于样本数据计算count聚集操作的误差
+	 */
+	@Test
+	public void computeTestError(){
+		String sql = "SELECT sum(zipfNum*sf) FROM test_rand_sample GROUP BY group_one,group_two,group_three ";
+		String summarySql = "SELECT sum(zipfNum) FROM test GROUP BY  group_one,group_two,group_three";
+		DBUtil dbOne = new DBUtil();
+		DBUtil dbTwo = new DBUtil();
+		ResultSet rsOne = dbOne.excuteQuery(sql);
+		ResultSet rsTwo = dbTwo.excuteQuery(summarySql);
+		try {
+			int i = 0;
+			while(rsOne.next() && rsTwo.next()){
+				float error = Math.abs(rsOne.getFloat(1)-rsTwo.getFloat(1))/rsTwo.getFloat(1);
+				System.out.println("error-"+ (i++) +":" + error*100);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
 }

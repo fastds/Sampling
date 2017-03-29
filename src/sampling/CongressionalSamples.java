@@ -5,7 +5,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -209,6 +208,7 @@ public class CongressionalSamples {
 			float sizeAfterScale = this.congress.get(j)/maxSum*this.sampleNum;
 			this.congress.set(j, sizeAfterScale);
 			this.scaleFactor.add((float)this.tupleNumOfGrouping.get(j)/sizeAfterScale);
+			System.out.println("group "+ j + " tupleNum="+(float)this.tupleNumOfGrouping.get(j)+"-sampleNum:"+sizeAfterScale);
 		}
 		System.out.println("congress:"+this.congress);
 	}
@@ -256,26 +256,32 @@ public class CongressionalSamples {
 		//为每一个组构造一个sql语句，来取样
 		String sql = null;
 		StringBuilder attrs = null;
+		
+		new DBUtil().excute("CREATE TABLE " + this.table +"_rand_sample " + " SELECT * FROM " + this.table +" LIMIT 0 ");
+		new DBUtil().excute("ALTER TABLE " + this.table +"_rand_sample ADD COLUMN sf decimal(16,6)");
 		for(int i = 0; i < this.groupNum; i++){
 			attrs = new StringBuilder();
 			// TODO 以后增添分组属性类型的判断，判断值类型的格式应该怎么拼接
 			for(int j = 0; j < this.groupingAttrs.size(); j++){
 				attrs.append(this.groupingAttrs.get(j) + "='" + this.groupingValues.get(i).get(j) + "' AND ");
 			}
-			if(i == 0){
-				sql = "CREATE TABLE " + this.table +"_sample ";
-			}else{
-				sql = "INSERT INTO " + this.table +"_sample ";
-			}
+			sql = "INSERT INTO " + this.table +"_rand_sample ";
 			int tupleNum = this.congress.get(i).intValue();
 			int modNum = this.tupleNumOfGrouping.get(i)/tupleNum;
-			// TODO 将等距抽样改为均匀随机抽样
-			sql += "SELECT * FROM ("
-					+ "SELECT @row:=@row+1 AS row , l.*, "+ this.scaleFactor.get(i) + " AS sf"
-					+ " FROM "+ this.table 
-					+ " AS l,( SELECT @row:=0) AS r "
-					+ " WHERE " + attrs.substring(0,attrs.lastIndexOf("AND")) + ") AS t WHERE t.row%"+modNum+"=0"
-					+ " LIMIT " + tupleNum;
+			// TODO 不论是等距抽样还是随机抽样，都存在样本表中样本量与用户指定的样本大小的一定的出入，如何修正这一点？
+			//	组内的等距抽样
+//			sql += "SELECT * FROM ("
+//					+ "SELECT @row:=@row+1 AS row , l.*, "+ this.scaleFactor.get(i) + " AS sf"
+//					+ " FROM "+ this.table 
+//					+ " AS l,( SELECT @row:=0) AS r "
+//					+ " WHERE " + attrs.substring(0,attrs.lastIndexOf("AND")) + ") AS t WHERE t.row%"+modNum+"=0"
+//					+ " LIMIT " + tupleNum;
+			// 组内的随机抽样
+			sql +=  "SELECT l.*, "+ this.scaleFactor.get(i) + " AS sf"
+					+ " FROM "+ this.table + " AS l "
+					+ " WHERE " + attrs.substring(0,attrs.lastIndexOf("AND")) 
+					+ " AND rand() < " + 1/this.scaleFactor.get(i);
+			
 			System.out.println("materialize : "+sql);
 			DBUtil util = new DBUtil();
 			boolean result = util.excute(sql);
